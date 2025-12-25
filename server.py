@@ -1,9 +1,23 @@
-from aiohttp import web
+import asyncio
+from datetime import datetime
+
 import aiofiles
+from aiohttp import web
+
+INTERVAL_SECS = 1
 
 
 async def archive(request):
-    raise NotImplementedError
+    response = web.StreamResponse()
+    response.headers['Content-Type'] = 'text/html'
+
+    await response.prepare(request)
+
+    while True:
+        formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        message = f'{formatted_date}<br>'
+        await response.write(message.encode())
+        await asyncio.sleep(INTERVAL_SECS)
 
 
 async def handle_index_page(request):
