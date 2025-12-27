@@ -1,10 +1,13 @@
 import asyncio
 import os
+import logging
 
 import aiofiles
 from aiohttp import web
 
-BUFFER_SIZE = 300  # bytes
+logging.basicConfig(level=logging.INFO)
+
+CHUNK_SIZE = 300  # bytes
 
 
 async def archive(request):
@@ -31,7 +34,8 @@ async def archive(request):
 
     await response.prepare(request)
     while not archive_process.stdout.at_eof():
-        message = await archive_process.stdout.read(n=BUFFER_SIZE*1024)
+        message = await archive_process.stdout.read(n=CHUNK_SIZE*1024)
+        logging.info('Sending archive chunk...')
         await response.write(message)
 
     return response
