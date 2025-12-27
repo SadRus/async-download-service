@@ -8,6 +8,7 @@ from aiohttp import web
 logging.basicConfig(level=logging.INFO)
 
 CHUNK_SIZE = 300  # bytes
+INTERVAL_SECS = 1
 
 
 async def archive(request):
@@ -37,6 +38,7 @@ async def archive(request):
         message = await archive_process.stdout.read(n=CHUNK_SIZE*1024)
         logging.info('Sending archive chunk...')
         await response.write(message)
+        await asyncio.sleep(INTERVAL_SECS)
 
     return response
 
