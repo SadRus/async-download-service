@@ -4,6 +4,8 @@ import os
 import aiofiles
 from aiohttp import web
 
+BUFFER_SIZE = 300  # bytes
+
 
 async def archive(request):
     response = web.StreamResponse()
@@ -14,6 +16,9 @@ async def archive(request):
 
     folder_name = request.match_info.get('archive_hash', 'unknown_hash')
     folder_path = os.path.join(os.getcwd(), 'test_photos', folder_name)
+    if not os.path.exists(folder_path):
+        return web.HTTPNotFound(text="Архив не существует или был удален")
+
     command_args = ['-r', '-', '.']
 
     archive_process = await asyncio.create_subprocess_exec(
@@ -25,9 +30,8 @@ async def archive(request):
     )
 
     await response.prepare(request)
-
     while not archive_process.stdout.at_eof():
-        message = await archive_process.stdout.read(n=300*1024)
+        message = await archive_process.stdout.read(n=BUFFER_SIZE*1024)
         await response.write(message)
 
     return response
