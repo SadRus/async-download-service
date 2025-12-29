@@ -7,25 +7,26 @@ from aiohttp import web
 
 logging.basicConfig(level=logging.INFO)
 
-CHUNK_SIZE = 300  # bytes
-INTERVAL_SECS = 1
+ARCHIVE_FILENAME = 'archive.zip'
+CHUNK_SIZE = 300 * 1024  # bytes
+INTERVAL_SECS = 2
 
 
 async def archive(request):
     response = web.StreamResponse()
     response.headers.update({
         'Content-Type': 'application/zip',
-        'Content-Disposition': 'attachment; filename="archive.zip"',
+        'Content-Disposition': f'attachment; filename={ARCHIVE_FILENAME}',
     })
 
     folder_name = request.match_info.get('archive_hash', 'unknown_hash')
     folder_path = os.path.join(os.getcwd(), 'test_photos', folder_name)
     if not os.path.exists(folder_path):
-        return web.HTTPNotFound(text="Архив не существует или был удален")
+        return web.HTTPNotFound(text='Архив не существует или был удален')
 
-    command_args = ['-r', '-', '.']
+    command_args = ('-r', '-', '.')
 
-    archive_process = await asyncio.create_subprocess_exec(
+    process = await asyncio.create_subprocess_exec(
         'zip',
         *command_args,
         stdout=asyncio.subprocess.PIPE,
@@ -34,18 +35,25 @@ async def archive(request):
     )
 
     await response.prepare(request)
-    while not archive_process.stdout.at_eof():
-        try:
-            message = await archive_process.stdout.read(n=CHUNK_SIZE*1024)
+    try:
+        while not process.stdout.at_eof():
+            message = await process.stdout.read(n=CHUNK_SIZE)
             await response.write(message)
             logging.info('Sending archive chunk...')
             await asyncio.sleep(INTERVAL_SECS)
-        except ConnectionResetError as err:
-            archive_process.terminate()
-            logging.warning(f'Download was interrupted: {err}')
-        except BaseException as err:
-            archive_process.kill()
-            logging.error(err)
+
+    except ConnectionResetError as err:
+        logging.warning(f'Download was interrupted: {err}')
+
+    except BaseException as err:
+        logging.error(err)
+
+    finally:
+        if process.returncode is None:
+            process.terminate()
+        else:
+            process.kill()
+            await process.communicate()
 
     return response
 
