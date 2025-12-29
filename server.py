@@ -39,11 +39,13 @@ async def archive(request):
             message = await archive_process.stdout.read(n=CHUNK_SIZE*1024)
             await response.write(message)
             logging.info('Sending archive chunk...')
-        except ConnectionResetError as err:
-            logging.warning(f'Download was interrupted: {err}')
-            break
-        finally:
             await asyncio.sleep(INTERVAL_SECS)
+        except ConnectionResetError as err:
+            archive_process.terminate()
+            logging.warning(f'Download was interrupted: {err}')
+        except BaseException as err:
+            archive_process.kill()
+            logging.error(err)
 
     return response
 
