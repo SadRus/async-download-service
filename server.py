@@ -5,6 +5,7 @@ from functools import partial
 
 import aiofiles
 from aiohttp import web
+from dotenv import load_dotenv
 
 from argparser import create_argparser
 
@@ -67,6 +68,8 @@ async def handle_index_page(request: web.Request) -> web.Response:
 
 
 if __name__ == '__main__':
+    load_dotenv()
+
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s] %(levelname)s: %(message)s',
