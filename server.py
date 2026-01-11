@@ -17,6 +17,7 @@ _logger = logging.getLogger()
 
 async def archive(request: web.Request, delay: int, path: str) -> web.StreamResponse:
     response = web.StreamResponse()
+    response.enable_chunked_encoding()
     response.headers.update({
         'Content-Type': 'application/zip',
         'Content-Disposition': f'attachment; filename={ARCHIVE_FILENAME}',
@@ -54,7 +55,7 @@ async def archive(request: web.Request, delay: int, path: str) -> web.StreamResp
     finally:
         if process.returncode is None:
             process.terminate()
-        else:
+        elif process.returncode:
             process.kill()
             await process.communicate()
 
